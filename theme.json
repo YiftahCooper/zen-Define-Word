@@ -1,0 +1,31 @@
+{
+  "id": "define-word",
+  "name": "Define Word",
+  "description": "Compact English and Hebrew dictionary definitions for selected words.",
+  "author": "YiftahCooper",
+  "version": "0.1.0",
+  "createdAt": "2026-09-29",
+  "updatedAt": "2026-09-29",
+  "supportsUnload": true,
+  "preferences": "preferences.json",
+  "style": {
+    "chrome": "style.css"
+  },
+  "scripts": {
+    "define-word.uc.js": {
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    }
+  },
+  "fork": [
+    "zen"
+  ],
+  "tags": [
+    "Dictionary",
+    "Hebrew",
+    "Selection"
+  ],
+  "homepage": "https://github.com/YiftahCooper/zen-Define-Word",
+  "readme": "https://raw.githubusercontent.com/YiftahCooper/zen-Define-Word/main/README.md"
+}
