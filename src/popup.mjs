@@ -28,6 +28,12 @@ export function createPopup(window,callbacks){
       language.value=term.language||'';provider.replaceChildren();for(const p of providers){const option=el('option',p.label+(p.keyRequired?' · API key':''));option.value=p.id;provider.append(option);}provider.value=providerId;provider.disabled=!providers.length;
       result.dir=term.language==='he'?'rtl':'ltr';result.lang=term.language||'en';word.textContent=term.original||'Define';headword.textContent='';headword.hidden=true;senses.replaceChildren();attribution.replaceChildren();sourceUrl=null;source.hidden=true;
       status.textContent=messages[outcome.status]||'';status.dir='ltr';status.lang='en';
+      if(outcome.status==='no-result'){
+        const label=providers.find(p=>p.id===providerId)?.label||'This dictionary';
+        status.textContent=term.language==='he'?`לא נמצא ערך עבור ״${term.original}״ ב${label}. ייתכן שהמילה או צורת הנטייה חסרה במילון.`:`No entry for “${term.original}” in ${label}.`;
+        if(providers.length>1)status.textContent+=term.language==='he'?' אפשר לבחור מילון אחר.':' Choose another dictionary above.';
+        status.dir=term.language==='he'?'rtl':'ltr';status.lang=term.language||'en';
+      }
       if(outcome.status==='ok'){
         const d=outcome.definition;result.dir=d.language==='he'?'rtl':'ltr';result.lang=d.language;
         if(d.headword&&d.headword!==term.original){headword.hidden=false;headword.textContent=(d.language==='he'?'ערך במילון: ':'Dictionary entry: ')+d.headword;}

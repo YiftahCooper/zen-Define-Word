@@ -3,6 +3,11 @@ import {createPopup as defaultPopup} from './popup.mjs';
 export function createController(window,deps) {
   const {document}=window,menu=document.getElementById('contentAreaContextMenu');
   const item=document.createXULElement('menuitem');item.id='define-word-menu';item.hidden=true;item.setAttribute('label','Define');menu?.append(item);
+  function updateAppearance(settings=deps.settings()){
+    const visible=settings.showIcon!==false;item.classList.toggle('menuitem-iconic',visible);
+    if(visible)item.setAttribute('image','chrome://sine/content/define-word/assets/define-word.svg');else item.removeAttribute('image');
+  }
+  updateAppearance();
   let generation=0,pending,disposed=false,lastTerm,lastProvider,lastSelection,originBrowser;
   const available=language=>[...deps.providers.values()].filter(p=>p.language===language);
   const current=()=>originBrowser===window.gBrowser.selectedBrowser&&(!lastSelection||deps.selection.isCurrent(window,lastSelection));
@@ -42,5 +47,5 @@ export function createController(window,deps) {
   window.gBrowser.tabContainer.addEventListener('TabSelect',dismiss);
   window.gBrowser.tabContainer.addEventListener('TabClose',tabClosed);
   window.gBrowser.addTabsProgressListener(progress);
-  return {define,close,credentialsChanged(id){if(id===lastProvider)close();},destroy(){if(disposed)return;disposed=true;close();item.removeEventListener('command',command);item.remove();menu?.removeEventListener('popupshowing',showing);window.gBrowser.tabContainer.removeEventListener('TabSelect',dismiss);window.gBrowser.tabContainer.removeEventListener('TabClose',tabClosed);window.gBrowser.removeTabsProgressListener(progress);popup.destroy();deps.selection.release();}};
+  return {define,close,updateAppearance,credentialsChanged(id){if(id===lastProvider)close();},destroy(){if(disposed)return;disposed=true;close();item.removeEventListener('command',command);item.remove();menu?.removeEventListener('popupshowing',showing);window.gBrowser.tabContainer.removeEventListener('TabSelect',dismiss);window.gBrowser.tabContainer.removeEventListener('TabClose',tabClosed);window.gBrowser.removeTabsProgressListener(progress);popup.destroy();deps.selection.release();}};
 }

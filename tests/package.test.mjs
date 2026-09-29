@@ -2,7 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 test('Sine manifest resolves one entry, actor modules, preferences and style',async()=>{
   const theme=JSON.parse(await readFile(new URL('../theme.json',import.meta.url),'utf8'));
   assert.deepEqual(Object.keys(theme.scripts),['define-word.uc.js']);assert.equal(theme.supportsUnload,true);
-  for(const path of ['define-word.uc.js',theme.preferences,theme.style.chrome,'src/selection.sys.mjs','actors/DefineWordParent.sys.mjs','actors/DefineWordChild.sys.mjs'])await access(new URL('../'+path,import.meta.url));
+  assert(theme.scripts['define-word.uc.js'].include.includes('about:preferences*'));
+  assert(theme.scripts['define-word.uc.js'].include.includes('about:settings*'));
+  for(const path of ['define-word.uc.js',theme.preferences,theme.style.chrome,'assets/define-word.svg','src/selection.sys.mjs','actors/DefineWordParent.sys.mjs','actors/DefineWordChild.sys.mjs'])await access(new URL('../'+path,import.meta.url));
 });
 test('built entry reloads without duplicate controls and completely unloads',async()=>{
   const source=await readFile(new URL('../define-word.uc.js',import.meta.url),'utf8');

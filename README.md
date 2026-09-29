@@ -2,9 +2,9 @@
 
 A Sine mod for Zen Browser that shows compact definitions for selected English and Hebrew words.
 
-Select a word, right-click **Define**, or press **Ctrl+Alt+D**. The card includes definitions, examples when supplied, a dictionary selector and source attribution. Hebrew definitions use right-to-left layout. The shortcut is configurable in the card's **Settings**.
+Select a word, right-click **Define**, or press **Ctrl+Alt+D**. The card includes definitions, examples when supplied, a dictionary selector and source attribution. Hebrew definitions use right-to-left layout. Configure the shortcut, optional API keys and menu icon in **Sine → Define Word → Configure**. The card's Settings button opens that same page.
 
-**Version 0.1.0 is an initial candidate.** It has passed 38 automated source/DOM/package tests and independent source review with regression-tested fixes. Native Zen/Sine behavior still needs user testing; publication is not a claim of native acceptance. See [verification](VERIFICATION.md).
+**Version 0.1.1 is a settings and appearance update candidate.** It passes 45 automated source/DOM/package tests. Independent source review found no Critical or Important defect; its minor shortcut-status finding received a regression-tested fix. Native Zen/Sine behavior still needs user testing; publication is not a claim of native acceptance. See [verification](VERIFICATION.md).
 
 ## Install with Sine
 
@@ -32,14 +32,17 @@ To remove the mod, use Sine's normal disable/remove controls. Optional dictionar
 
 Wiktionary's English and Hebrew endpoints returned usable responses during development. Free Dictionary API returned HTTP 522 during that check, so it remains selectable but is not the initial default. There is no automatic switch to a different dictionary when a lookup fails.
 
-Obtain optional Merriam-Webster keys from [the official developer site](https://dictionaryapi.com/) and enter them in **Settings** in the card. Its API terms and quotas apply. Authenticated Merriam-Webster requests have not yet been verified with a user key.
+Obtain optional Merriam-Webster keys from [the official developer site](https://dictionaryapi.com/) and enter them in **Sine → Define Word → Configure → Dictionary API keys**. Each dictionary has a masked field and Save key / Remove key buttons. Its API terms and quotas apply. Authenticated Merriam-Webster requests have not yet been verified with a user key.
 
-Hebrew coverage is currently limited to ויקימילון. Inflected forms may have no entry. A failed pointed-Hebrew lookup can retry once without niqqud; the card labels that result and keeps the originally selected spelling. Milog, Rav-Milim, Cambridge and Oxford are not listed as supported because a suitable compact-card integration has not been established.
+Hebrew coverage is currently limited to ויקימילון. Even common words and inflected forms may have no entry. On 2026-09-29, the provider returned no entry for `מדריך`, while `מחשב` and `שלום` returned definitions. The mod does not invent a definition or substitute a different word. A failed pointed-Hebrew lookup can retry once without niqqud; the card labels that result and keeps the originally selected spelling. Milog, Rav-Milim, Cambridge and Oxford are not listed as supported because a suitable compact-card integration has not been established.
 
 ## Settings and behavior
 
 - Choose a preferred dictionary per language in Sine's mod settings or in the card.
-- Open **Settings** in the card to record a shortcut, disable it, or save/remove optional dictionary keys. Keys use Firefox's credential storage, not ordinary mod preferences.
+- In **Sine → Define Word → Configure**, choose **Record shortcut**, press the desired key combination, then choose **Save shortcut**. To disable it, choose **Disable shortcut**, then **Save shortcut**.
+- Optional API keys are entered in that same Configure dialog. Keys use Firefox's credential storage, not ordinary mod preferences.
+- **Show a dictionary icon next to Define** toggles the right-click menu icon.
+- The popup inherits browser popup colors and color scheme; Configure controls inherit the preferences-page theme.
 - Shortcut matching uses the physical key so it can work across English/Hebrew layouts. Known native browser-key conflicts leave the shortcut inactive. OS shortcuts and dynamically registered extension shortcuts cannot all be detected.
 - The card opens at a fixed inset beside the content area, approximately 440 CSS pixels wide. Positioning beside the selected word is not implemented yet.
 - Closing the card, changing tabs, navigating, starting another lookup or unloading cancels outstanding work and rejects stale results. Changing a key in the mod's Settings also cancels that dictionary's work in other active windows.

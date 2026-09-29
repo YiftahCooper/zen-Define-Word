@@ -12,7 +12,7 @@ const sourceFiles={name:'project-sources',setup(builder){
   });
   builder.onLoad({filter:/.*/,namespace:'project'},async args=>({contents:await readFile(new URL(args.path,root),'utf8'),loader:'js'}));
 }};
-const result=await build({entryPoints:['src/entry.js'],absWorkingDir:fileURLToPath(root),plugins:[sourceFiles],tsconfigRaw:{compilerOptions:{}},bundle:true,format:'iife',platform:'browser',target:'firefox128',write:false,charset:'utf8',banner:{js:'// Define Word 0.1.0 — generated from src/entry.js; run node build.mjs.\n// Local candidate; native Zen verification required.'}});
+const result=await build({entryPoints:['src/entry.js'],absWorkingDir:fileURLToPath(root),plugins:[sourceFiles],tsconfigRaw:{compilerOptions:{}},bundle:true,format:'iife',platform:'browser',target:'firefox128',write:false,charset:'utf8',banner:{js:'// Define Word 0.1.1 â€” generated from src/entry.js; run node build.mjs.\n// Local candidate; native Zen verification required.'}});
 const content=result.outputFiles[0].text,path=new URL('define-word.uc.js',root);
 if(process.argv.includes('--check')){if(await readFile(path,'utf8')!==content)throw new Error('Generated entry is stale');console.log('Generated entry matches source.');}
 else{await writeFile(path,content);console.log('Built define-word.uc.js');}

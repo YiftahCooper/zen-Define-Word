@@ -1,4 +1,4 @@
-// Define Word 0.1.0 — generated from src/entry.js; run node build.mjs.
+// Define Word 0.1.1 â€” generated from src/entry.js; run node build.mjs.
 // Local candidate; native Zen verification required.
 (() => {
   // project:src/providers/http.mjs
@@ -332,6 +332,13 @@
         status.textContent = messages[outcome.status] || "";
         status.dir = "ltr";
         status.lang = "en";
+        if (outcome.status === "no-result") {
+          const label = providers2.find((p) => p.id === providerId)?.label || "This dictionary";
+          status.textContent = term.language === "he" ? `לא נמצא ערך עבור ״${term.original}״ ב${label}. ייתכן שהמילה או צורת הנטייה חסרה במילון.` : `No entry for “${term.original}” in ${label}.`;
+          if (providers2.length > 1) status.textContent += term.language === "he" ? " אפשר לבחור מילון אחר." : " Choose another dictionary above.";
+          status.dir = term.language === "he" ? "rtl" : "ltr";
+          status.lang = term.language || "en";
+        }
         if (outcome.status === "ok") {
           const d = outcome.definition;
           result.dir = d.language === "he" ? "rtl" : "ltr";
@@ -384,6 +391,13 @@
     item.hidden = true;
     item.setAttribute("label", "Define");
     menu?.append(item);
+    function updateAppearance(settings = deps.settings()) {
+      const visible = settings.showIcon !== false;
+      item.classList.toggle("menuitem-iconic", visible);
+      if (visible) item.setAttribute("image", "chrome://sine/content/define-word/assets/define-word.svg");
+      else item.removeAttribute("image");
+    }
+    updateAppearance();
     let generation = 0, pending, disposed2 = false, lastTerm, lastProvider, lastSelection, originBrowser;
     const available = (language) => [...deps.providers.values()].filter((p) => p.language === language);
     const current = () => originBrowser === window2.gBrowser.selectedBrowser && (!lastSelection || deps.selection.isCurrent(window2, lastSelection));
@@ -471,7 +485,7 @@
     window2.gBrowser.tabContainer.addEventListener("TabSelect", dismiss);
     window2.gBrowser.tabContainer.addEventListener("TabClose", tabClosed);
     window2.gBrowser.addTabsProgressListener(progress);
-    return { define, close, credentialsChanged(id) {
+    return { define, close, updateAppearance, credentialsChanged(id) {
       if (id === lastProvider) close();
     }, destroy() {
       if (disposed2) return;
@@ -519,9 +533,9 @@
       if (disposed2) return;
       try {
         const validated = validateBinding(value);
-        const conflict2 = findConflict(window2, validated);
-        onConflict(conflict2);
-        if (!conflict2) active = validated;
+        const conflict = findConflict(window2, validated);
+        onConflict(conflict);
+        if (!conflict) active = validated;
       } catch (error) {
         onConflict(error.message);
       }
@@ -529,10 +543,10 @@
     function keydown(event) {
       if (!active || event.defaultPrevented || event.repeat || event.isComposing || event.getModifierState?.("AltGraph")) return;
       if (event.code !== active.code || event.ctrlKey !== active.ctrl || event.altKey !== active.alt || event.shiftKey !== active.shift || event.metaKey !== active.meta) return;
-      const conflict2 = findConflict(window2, active);
-      if (conflict2) {
+      const conflict = findConflict(window2, active);
+      if (conflict) {
         active = null;
-        onConflict(conflict2);
+        onConflict(conflict);
         return;
       }
       event.preventDefault();
@@ -559,7 +573,7 @@
     } catch {
       shortcut2 = null;
     }
-    return { englishProvider: providers.get(english)?.language === "en" ? english : "wiktionary-en", hebrewProvider: providers.get(hebrew)?.language === "he" ? hebrew : "wiktionary-he", shortcut: shortcut2 };
+    return { englishProvider: providers.get(english)?.language === "en" ? english : "wiktionary-en", hebrewProvider: providers.get(hebrew)?.language === "he" ? hebrew : "wiktionary-he", shortcut: shortcut2, showIcon: prefs.getBoolPref?.(`${PREF}show-icon`, true) ?? true };
   }
   function saveSettings(prefs, settings) {
     if (providers.get(settings.englishProvider)?.language !== "en" || providers.get(settings.hebrewProvider)?.language !== "he") throw new Error("Choose a dictionary for the selected language.");
@@ -568,52 +582,32 @@
     prefs.setStringPref(`${PREF}hebrew`, settings.hebrewProvider);
     prefs.setStringPref(`${PREF}shortcut`, JSON.stringify(binding));
   }
-  function openSettings(window2, { prefs, credentials, onCredentialsChanged, conflict: conflict2 }) {
+  function createSettingsControls(window2, { prefs, credentials, onCredentialsChanged, browserWindow = () => window2 }) {
     const { document: document2 } = window2;
-    const existing = document2.getElementById("define-word-settings");
-    if (existing) {
-      existing.focus();
-      return existing;
-    }
-    const origin = document2.activeElement, el = (tag, value) => {
+    const el = (tag, value) => {
       const n = document2.createElementNS("http://www.w3.org/1999/xhtml", tag);
       if (value !== void 0) n.textContent = value;
       return n;
     };
-    const dialog2 = el("dialog");
-    dialog2.id = "define-word-settings";
-    dialog2.setAttribute("aria-labelledby", "define-word-settings-heading");
-    const heading = el("h2", "Define settings");
-    heading.id = "define-word-settings-heading";
-    dialog2.append(heading);
-    const current = readSettings(prefs), pickers = {};
-    let binding = current.shortcut;
-    for (const [lang, label, prop] of [["en", "English dictionary", "englishProvider"], ["he", "Hebrew dictionary", "hebrewProvider"]]) {
-      const row = el("label", label), select = el("select");
-      for (const p of providers.values()) if (p.language === lang) {
-        const option = el("option", p.label + (p.keyRequired ? " · API key required" : ""));
-        option.value = p.id;
-        select.append(option);
-      }
-      select.value = current[prop];
-      pickers[prop] = select;
-      row.append(select);
-      dialog2.append(row);
-    }
-    const error = el("p", conflict2?.() || "");
-    error.setAttribute("role", "alert");
-    const shortcutLabel = el("label", "Keyboard shortcut"), field = el("input");
+    const root = el("section");
+    root.dataset.defineWordSettings = "";
+    root.className = "dw-settings";
+    let binding = readSettings(prefs).shortcut, recording = false, disposed2 = false;
+    const error = el("p");
+    error.setAttribute("role", "status");
+    error.setAttribute("aria-live", "polite");
+    root.append(el("h3", "Keyboard shortcut"), el("p", "Choose Record shortcut, press your key combination, then Save shortcut. This invokes Define for the selected word."));
+    const label = el("label", "Current shortcut"), field = el("input");
     field.readOnly = true;
     field.value = bindingLabel(binding);
-    shortcutLabel.append(field);
-    dialog2.append(shortcutLabel);
+    label.append(field);
+    root.append(label);
     const actions = el("div");
     actions.className = "dw-actions";
-    const record = el("button", "Record shortcut"), disable = el("button", "Disable shortcut");
-    record.type = disable.type = "button";
-    actions.append(record, disable);
-    dialog2.append(actions);
-    let recording = false;
+    const record = el("button", "Record shortcut"), disable = el("button", "Disable shortcut"), save = el("button", "Save shortcut");
+    for (const button of [record, disable, save]) button.type = "button";
+    actions.append(record, disable, save);
+    root.append(actions);
     record.addEventListener("click", () => {
       recording = true;
       field.value = "Press a shortcut…";
@@ -631,7 +625,7 @@
       if (event.isComposing || event.getModifierState?.("AltGraph")) return;
       try {
         const next = validateBinding({ code: event.code, ctrl: event.ctrlKey, alt: event.altKey, shift: event.shiftKey, meta: event.metaKey });
-        const problem = findConflict(window2, next);
+        const problem = findConflict(browserWindow(), next);
         if (problem) throw new Error(problem);
         binding = next;
         recording = false;
@@ -646,65 +640,115 @@
       recording = false;
       field.value = "Disabled";
     });
-    const save = el("button", "Save settings");
-    save.type = "button";
     save.addEventListener("click", () => {
       try {
         if (recording) throw new Error("Finish recording the shortcut first.");
-        const problem = findConflict(window2, binding);
+        const problem = findConflict(browserWindow(), binding);
         if (problem) throw new Error(problem);
-        saveSettings(prefs, { englishProvider: pickers.englishProvider.value, hebrewProvider: pickers.hebrewProvider.value, shortcut: binding });
-        error.textContent = "Settings saved.";
+        prefs.setStringPref(`${PREF}shortcut`, JSON.stringify(validateBinding(binding)));
+        error.textContent = "Shortcut saved.";
       } catch (problem) {
         error.textContent = problem.message;
       }
     });
-    dialog2.append(save);
-    dialog2.append(el("h3", "Optional Merriam-Webster keys"), el("p", "Keys are saved in Firefox credential storage. A separate key is needed for each dictionary."));
+    root.append(el("h3", "Dictionary API keys"), el("p", "Wiktionary and Free Dictionary API do not need keys. The two Merriam-Webster dictionaries each need their own key. Keys are saved in Firefox credential storage."));
+    const inputs = [];
     for (const id of ["mw-collegiate", "mw-learners"]) {
-      const row = el("label", providers.get(id).label), input = el("input");
+      const row = el("label", providers.get(id).label + " API key"), input = el("input");
       input.type = "password";
       input.autocomplete = "off";
       input.maxLength = 512;
+      input.placeholder = "Enter a key to save or replace it";
       row.append(input);
-      dialog2.append(row);
+      root.append(row);
+      inputs.push(input);
       const buttons = el("div");
       buttons.className = "dw-actions";
       const set = el("button", "Save key"), remove = el("button", "Remove key");
       set.type = remove.type = "button";
       buttons.append(set, remove);
-      dialog2.append(buttons);
+      root.append(buttons);
       async function change(action) {
         set.disabled = remove.disabled = true;
         try {
           await action();
           input.value = "";
           onCredentialsChanged?.(id);
-          error.textContent = "Dictionary key updated.";
+          if (!disposed2) error.textContent = "Dictionary key updated.";
         } catch {
-          error.textContent = "Could not update the key. Check the value and unlock Firefox credential storage, then try again.";
+          if (!disposed2) error.textContent = "Could not update the key. Check the value and unlock Firefox credential storage, then try again.";
         } finally {
           set.disabled = remove.disabled = false;
         }
       }
-      set.addEventListener("click", () => change(() => credentials.set(id, input.value)));
+      set.addEventListener("click", () => {
+        const key = input.value;
+        input.value = "";
+        void change(() => credentials.set(id, key));
+      });
       remove.addEventListener("click", () => change(() => credentials.remove(id)));
     }
     const info = el("button", "Get a Merriam-Webster API key");
     info.type = "button";
-    info.addEventListener("click", () => window2.openTrustedLinkIn("https://dictionaryapi.com/", "tab"));
-    dialog2.append(info, error);
-    const done = el("button", "Done");
-    done.type = "button";
-    done.addEventListener("click", () => dialog2.close());
-    dialog2.append(done);
-    dialog2.addEventListener("close", () => {
-      dialog2.remove();
-      if (origin?.isConnected) origin.focus();
-    });
-    document2.documentElement.append(dialog2);
-    dialog2.showModal();
-    return dialog2;
+    info.addEventListener("click", () => browserWindow().openTrustedLinkIn("https://dictionaryapi.com/", "tab"));
+    root.append(info, error);
+    function reset() {
+      for (const input of inputs) input.value = "";
+      recording = false;
+      binding = readSettings(prefs).shortcut;
+      field.value = bindingLabel(binding);
+      const conflict = findConflict(browserWindow(), binding);
+      error.textContent = conflict ? `Shortcut inactive. ${conflict}` : "";
+    }
+    reset();
+    return { element: root, reset, destroy() {
+      disposed2 = true;
+      for (const input of inputs) input.value = "";
+      recording = false;
+      root.remove();
+    } };
+  }
+
+  // project:src/sine-settings.mjs
+  function createSineSettingsBridge(window2, options) {
+    const { document: document2 } = window2;
+    let controls, container, dialog, disposed2 = false;
+    const style = document2.createElementNS("http://www.w3.org/1999/xhtml", "link");
+    style.rel = "stylesheet";
+    style.href = "chrome://sine/content/define-word/style.css";
+    document2.documentElement.append(style);
+    const reset = () => controls?.reset();
+    function unmount() {
+      dialog?.removeEventListener("close", reset);
+      controls?.destroy();
+      controls = container = dialog = null;
+    }
+    function mount() {
+      if (disposed2) return;
+      const next = document2.querySelector('[mod-id="define-word"] .sineItemPreferenceDialogContent');
+      if (next === container && controls?.element.isConnected) return;
+      unmount();
+      if (!next) return;
+      container = next;
+      controls = createSettingsControls(window2, options);
+      container.append(controls.element);
+      dialog = container.closest("dialog");
+      dialog?.addEventListener("close", reset);
+      if (new URL(window2.location.href).searchParams.get("defineWordSettings") === "1" && !document2.documentElement.hasAttribute("data-define-word-settings-shown")) {
+        document2.documentElement.setAttribute("data-define-word-settings-shown", "");
+        container.closest("[mod-id]")?.querySelector(".sineItemConfigureButton")?.click();
+      }
+    }
+    const observer2 = new window2.MutationObserver(mount);
+    observer2.observe(document2.documentElement, { childList: true, subtree: true });
+    mount();
+    return { destroy() {
+      if (disposed2) return;
+      disposed2 = true;
+      observer2.disconnect();
+      unmount();
+      style.remove();
+    } };
   }
 
   // project:src/credentials.sys.mjs
@@ -754,11 +798,10 @@
   var CREDENTIAL_TOPIC = "define-word-credentials-changed";
   var controller;
   var shortcut;
-  var dialog;
+  var settingsBridge;
   var observer;
   var credentialObserver;
   var disposed = false;
-  var conflict = "";
   var owner = { unload() {
     if (disposed) return;
     disposed = true;
@@ -768,23 +811,32 @@
     if (credentialObserver) Services.obs.removeObserver(credentialObserver, CREDENTIAL_TOPIC);
     shortcut?.destroy();
     controller?.destroy();
-    dialog?.remove();
+    settingsBridge?.destroy();
     if (window.__defineWord === owner) delete window.__defineWord;
   } };
   window.__defineWord = owner;
   window.addEventListener("unload", owner.unload, { once: true });
   window.addUnloadListener?.(owner.unload);
   function start() {
-    if (disposed || controller) return;
+    if (disposed || controller || settingsBridge) return;
     let selection;
     try {
-      const { acquireSelectionService } = ChromeUtils.importESModule("chrome://sine/content/define-word/src/selection.sys.mjs");
-      selection = acquireSelectionService();
       const credentials = createCredentials(Services.logins, (fields) => {
         const login = Cc["@mozilla.org/login-manager/loginInfo;1"].createInstance(Ci.nsILoginInfo);
         login.init(fields.origin, fields.formActionOrigin, fields.httpRealm, fields.username, fields.password, fields.usernameField, fields.passwordField);
         return login;
       });
+      if (/^about:(preferences|settings)(?:[?#]|$)/.test(window.location.href)) {
+        settingsBridge = createSineSettingsBridge(window, {
+          prefs: Services.prefs,
+          credentials,
+          browserWindow: () => window.browsingContext?.topChromeWindow || Services.wm.getMostRecentWindow("navigator:browser"),
+          onCredentialsChanged: (id) => Services.obs.notifyObservers(null, CREDENTIAL_TOPIC, id)
+        });
+        return;
+      }
+      const { acquireSelectionService } = ChromeUtils.importESModule("chrome://sine/content/define-word/src/selection.sys.mjs");
+      selection = acquireSelectionService();
       const lookup = createLookupService({
         providers,
         credentials,
@@ -802,17 +854,18 @@
           saveSettings(Services.prefs, { ...settings, [language === "he" ? "hebrewProvider" : "englishProvider"]: id });
         },
         openSettings() {
-          dialog = openSettings(window, { prefs: Services.prefs, credentials, conflict: () => conflict, onCredentialsChanged: (id) => Services.obs.notifyObservers(null, CREDENTIAL_TOPIC, id) });
+          window.openTrustedLinkIn("about:preferences?defineWordSettings=1#sineMods", "tab");
         }
       });
       shortcut = createShortcut(window, { binding: readSettings(Services.prefs).shortcut, onInvoke: () => {
         void controller.define();
-      }, onConflict: (message) => {
-        conflict = message;
+      }, onConflict: () => {
       } });
       observer = { observe() {
         controller.close();
-        shortcut.update(readSettings(Services.prefs).shortcut);
+        const settings = readSettings(Services.prefs);
+        controller.updateAppearance(settings);
+        shortcut.update(settings.shortcut);
       } };
       Services.prefs.addObserver(PREF, observer);
       credentialObserver = { observe(_subject, _topic, id) {

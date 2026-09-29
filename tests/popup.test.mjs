@@ -30,3 +30,9 @@ test('niqqud retry keeps the original selected word and labels the different dic
   const popup=createPopup(w,{onClose(){}});popup.render({term:{original:'שָׁלוֹם',language:'he'},providerId:'wiktionary-he',providers:[],outcome:{status:'ok',normalizedRetry:true,definition:{headword:'שלום',language:'he',senses:[],sourceUrl:'https://he.wiktionary.org/wiki/שלום',attribution:{label:'ויקימילון',url:'https://he.wiktionary.org/wiki/שלום'}}}});
   assert.equal(w.document.querySelector('h2').textContent,'שָׁלוֹם');assert.match(w.document.querySelector('[data-headword]').textContent,/שלום/);popup.destroy();dom.window.close();
 });
+
+test('missing Hebrew entry names the dictionary without suggesting a nonexistent alternative',()=>{
+  const dom=new JSDOM(''),w=dom.window;w.document.createXULElement=t=>{const n=w.document.createElement(t);n.openPopup=()=>{};n.hidePopup=()=>{};return n;};
+  const popup=createPopup(w,{onClose(){}});popup.render({term:{original:'מדריך',language:'he'},providerId:'wiktionary-he',providers:[{id:'wiktionary-he',label:'ויקימילון'}],outcome:{status:'no-result'}});
+  const text=w.document.querySelector('[data-result]').textContent;assert(text.includes('ויקימילון'));assert(!text.includes('Try another dictionary'));assert(text.includes('מדריך'));popup.destroy();dom.window.close();
+});
