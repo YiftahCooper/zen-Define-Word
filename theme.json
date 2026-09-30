@@ -3,9 +3,9 @@
   "name": "Define Word",
   "description": "Compact English and Hebrew dictionary definitions for selected words.",
   "author": "YiftahCooper",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "createdAt": "2026-09-29",
-  "updatedAt": "2026-09-29T20:24:37Z",
+  "updatedAt": "2026-09-30T09:18:52Z",
   "supportsUnload": true,
   "preferences": "preferences.json",
   "style": {
@@ -28,6 +28,6 @@
     "Hebrew",
     "Selection"
   ],
-  "homepage": "https://github.com/YiftahCooper/zen-Define-Word",
-  "readme": "https://raw.githubusercontent.com/YiftahCooper/zen-Define-Word/main/README.md"
+  "homepage": "https://github.com/YiftahCooper/Zen-Mods/tree/main/define-word",
+  "readme": "https://raw.githubusercontent.com/YiftahCooper/Zen-Mods/main/define-word/README.md"
 }
